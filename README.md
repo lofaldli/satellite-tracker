@@ -12,12 +12,12 @@ and [python-sgp4][3] to predict satellite positions.
 to run:
 
         cd tracker/
-	python tracker.py
+        python tracker.py
 
 ## installation
 
-	sudo apt install python-pygame
-	pip install -r requirements.txt
+        sudo apt install python-pygame
+        pip install -r requirements.txt
 
 ## TODO
 
