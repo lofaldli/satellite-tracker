@@ -12,9 +12,12 @@ groups = [
 ]
 
 URL_FORMAT = 'http://celestrak.com/NORAD/elements/{}.txt'
-LOCAL_FORMAT = '../data/{}.txt'
+DATA_PATH = '../data'
+LOCAL_FORMAT = os.path.join(DATA_PATH, '{}.txt')
 
 def download_file(group):
+    if not os.path.exists(DATA_PATH):
+        os.mkdir(DATA_PATH)
     remote = URL_FORMAT.format(group)
     local = LOCAL_FORMAT.format(group)
     print 'fetching', remote, '=>', local
