@@ -24,6 +24,7 @@ to run:
 - change from spherical earth to a more accurate representation
 - optimizations
 - 3d view
+- keep looking up
 	
 [1]: http://gpredict.oz9aec.net/
 [2]: http://celestrak.com/SpaceTrack/
