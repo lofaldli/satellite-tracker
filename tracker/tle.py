@@ -1,16 +1,19 @@
 import re
 import arrow
 
+
 def norm(string):
     # -00123-4 -> -.00123e-4
     return float(string[0] + '.' + string[1:6] + 'e' + string[6:])
 
+
 def checksum(line):
-    line, n = re.subn('-', '1', line)    # replace dashes with 1's
-    line, n = re.subn('[^\d]', '', line) # remove non-digit chars
+    line, n = re.subn('-', '1', line)     # replace dashes with 1's
+    line, n = re.subn('[^\d]', '', line)  # remove non-digit chars
     # compare with last digit with sum modulo 10
     digits = [int(x) for x in line[:-1]]
     return int(line[-1]) == sum(digits) % 10
+
 
 class TLE:
     def __init__(self, tle_string):
@@ -24,9 +27,11 @@ class TLE:
         self.parse_line_2(line_2)
 
         if not checksum(line_1):
-            print 'invalid checksum in line 1 of %s #%d' % (self.sat_name, self.set_no)
+            print('invalid checksum in line 1 of %s #%d'
+                  % (self.sat_name, self.set_no))
         if not checksum(line_2):
-            print 'invalid checksum in line 2 of %s #%d' % (self.sat_name, self.set_no)
+            print('invalid checksum in line 2 of %s #%d'
+                  % (self.sat_name, self.set_no))
 
     def parse_title_line(self, line):
         self.sat_name = line[0:24]
@@ -46,7 +51,6 @@ class TLE:
         self.set_no         = int(line[64:68])   # element set number
         _                   = int(line[68])      # checksum
 
-
     def parse_line_2(self, line):
         _                 = int(line[2:7])         # satellite number
         self.incl         = float(line[8:16])      # inclination (degrees)
@@ -58,23 +62,17 @@ class TLE:
         self.rev_at_epoch = int(line[63:68])       # revolution number at epoch
         _                 = int(line[68])          # checksum
 
-
     @property
     def epoch(self):
         year = arrow.get(self.epoch_year, 'YY').year
         return arrow.get(self.epoch_day * 86400).replace(year=year)
 
 
+if __name__ == '__main__':
 
-
-
-if __name__=='__main__':
-
-    iss ='''ISS (ZARYA)
+    iss = '''ISS (ZARYA)
 1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927
 2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537'''
 
     t = TLE(iss)
-    print t.epoch
-
-
+    print(t.epoch)
