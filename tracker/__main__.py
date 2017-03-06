@@ -1,6 +1,6 @@
 import arrow
-import coords
-from gui import GUI
+from . import coords
+from .gui import GUI
 from database import TLEDatabase
 from satellite import Satellite
 
