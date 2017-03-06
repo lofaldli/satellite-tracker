@@ -8,7 +8,7 @@ sats = []
 
 
 def main():
-    db = TLEDatabase()
+    db = TLEDatabase(update=False)
     tles = []
     tles.append(db.find_by_name('iss'))
     tles.append(db.find_by_name('hst'))
@@ -20,13 +20,13 @@ def main():
         sats.append(Satellite(t))
 
     gui = GUI()
-    gui.set_background('../images/world_map.jpg')
+    gui.set_background('images/world_map.jpg')
     gui.main_loop(callback, run_once=False)
 
 
 def callback():
     now = arrow.utcnow()
-    phi_0 = coords.get_phi_0(now)
+    phi_0 = coords.phi0(now)
     points = []
     for sat in sats:
         sat.propagate(now)

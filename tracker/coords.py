@@ -1,17 +1,19 @@
 import arrow
-import math
-from math import sin, cos, radians, degrees
+from collections import namedtuple
+from math import pi, radians, degrees, sin, cos, asin, atan, atan2
 
 # source: http://celestrak.com/columns/v02n02/
 
-PI = math.pi
-TWO_PI = 2*PI
+TWO_PI = 2*pi
 EARTH_RADIUS = 6378.135
 
+Position = namedtuple('Position', ['x', 'y', 'z'])
+LatLon = namedtuple('LatLon', ['lat', 'lon'])
 
-def julian_date_of_year(year):
+
+def jdoy(year):
     '''
-    returns julian date of a given year
+    julian day of Jan 1 for a given year
     '''
     year -= 1
     a = int(0.01 * year)
@@ -19,9 +21,9 @@ def julian_date_of_year(year):
     return int(365.25 * year) + int(30.6001 * 14) + 1720994.5 + b
 
 
-def day_of_year(year, month, date):
+def doy(year, month, date):
     '''
-    returns number of days since Jan 1 for a given year
+    day of year
     '''
     time_str = '%d-%d-%d' % (year, month, date)
     a = arrow.get(time_str, 'YYYY-M-D')
@@ -31,10 +33,9 @@ def day_of_year(year, month, date):
 def julian_date(t):
     '''
     returns julian date for a given point in time
-    @param t arrow object to convert to julian
     '''
-    jd = julian_date_of_year(t.year) + 0.5
-    jd += day_of_year(t.year, t.month, t.day)
+    jd = jdoy(t.year) + 0.5
+    jd += doy(t.year, t.month, t.day)
     jd += (1.0 * t.hour - 12) / 24 + \
           (1.0 * t.minute) / 1440 +  \
           (1.0 * t.second) / 86400
@@ -66,14 +67,14 @@ def calc_pos(lat, lon, alt, t):
     x = r * cos(theta) * cos(lat)
     y = r * sin(theta) * cos(lat)
     z = r * sin(lat)
-    return (x, y, z)
+    return Position(x, y, z)
 
 
 def calc_user_look_at(pos_sat, lat, lon, alt, t):
     pos = calc_pos(lat, lon, alt, t)
-    rx = pos_sat[0] - pos[0]
-    ry = pos_sat[1] - pos[1]
-    rz = pos_sat[2] - pos[2]
+    rx = pos_sat.x - pos.x
+    ry = pos_sat.y - pos.y
+    rz = pos_sat.z - pos.z
     jd = julian_date(t)
     theta = (theta_g_JD(jd) + lon) % TWO_PI
 
@@ -86,20 +87,20 @@ def calc_user_look_at(pos_sat, lat, lon, alt, t):
         cos(lat) * sin(theta) * ry +  \
         sin(lat) * rz
 
-    az = math.atan(-top_e/top_s)
+    az = atan(-top_e/top_s)
     if top_s > 0:
-        az += PI
+        az += pi
     if az < 0:
         az += TWO_PI
 
     rg = (rx*rx + ry*ry + rz*rz)**0.5
-    el = math.asin(top_z/rg)
+    el = asin(top_z/rg)
     return (az, el, rg)
 
 
-def get_phi_0(t=arrow.utcnow()):
+def phi0(t):
     (x, y, z) = calc_pos(0, 0, 0, t)
-    return math.atan2(y, x)
+    return atan2(y, x)
 
 
 def eci_to_latlon(pos, phi_0=0):
@@ -109,14 +110,28 @@ def eci_to_latlon(pos, phi_0=0):
     if abs(z) > 1.0:
         z = int(z)
 
-    lat = degrees(math.asin(z))
-    lon = degrees(math.atan2(y, x)-phi_0)
+    lat = degrees(asin(z))
+    lon = degrees(atan2(y, x)-phi_0)
     if lon > 180:
         lon -= 360
     elif lon < -180:
         lon += 360
-    return (lat, lon)
+    assert -90 <= lat <= 90
+    assert -180 <= lon <= 180
+    return lat, lon
 
+
+def latlon2uv(latlon):
+    lat, lon = latlon
+    assert -90 <= lat <= 90
+    assert -180 <= lon <= 180
+
+    u = (lon + 180) / 360
+    v = (90 - lat) / 180
+    assert 0 <= u <= 1
+    assert 0 <= v <= 1
+
+    return u, v
 
 if __name__ == '__main__':
     now = arrow.utcnow()
@@ -124,7 +139,7 @@ if __name__ == '__main__':
     lon = -100
     trd = calc_pos(radians(lat), radians(lon), 0, now)
 
-    phi_0 = get_phi_0()
+    phi_0 = phi0(arrow.utcnow())
 
     z = trd[2]
     r = EARTH_RADIUS
