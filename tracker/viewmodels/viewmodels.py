@@ -1,7 +1,8 @@
 import arrow
 import coords
-from sgp4.earth_gravity import wgs72
+from math import pi, cos
 from sgp4.io import twoline2rv
+from sgp4.earth_gravity import wgs72
 
 
 class ViewModel(object):
@@ -10,9 +11,12 @@ class ViewModel(object):
 
 
 class SatelliteViewModel(ViewModel):
-    def __init__(self, name, line1, line2):
+    def __init__(self, name, line1='', line2=''):
         super().__init__(name)
-        self.satelliteObject = twoline2rv(line1, line2, wgs72)
+        if line1 and line2:
+            self.satelliteObject = twoline2rv(line1, line2, wgs72)
+        else:
+            self.satelliteObject = None
 
     def propagate(self, t):
         pos, vel = self.satelliteObject.propagate(t.year, t.month, t.day,
@@ -28,6 +32,16 @@ class SatelliteViewModel(ViewModel):
             t = arrow.utcnow()
         pos, vel = self.propagate(t)
         lat, lon = coords.eci_to_latlon(pos, coords.phi0(t))
+        return coords.LatLon(lat, lon)
+
+
+class DummySatelliteViewModel(SatelliteViewModel):
+    def latlon(self, t=None):
+        if not t:
+            t = arrow.utcnow()
+        t = coords.julian_date(t) * 10000
+        lat = 80 * cos(2*pi*t)
+        lon = ((100 * t) % 360) - 180
         return lat, lon
 
 

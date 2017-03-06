@@ -1,5 +1,5 @@
 from coords import latlon2uv
-from PyQt5.QtCore import Qt, QRectF, QTimer
+from PyQt5.QtCore import Qt, QRectF, QTimer, QSize
 from PyQt5.QtGui import QBrush, QPixmap, QPen
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsView, QGraphicsItem, \
         QGraphicsTextItem, QGraphicsRectItem, QGraphicsPixmapItem
@@ -10,10 +10,14 @@ class MapViewItem(QGraphicsItem):
         super().__init__()
         self.viewModel = viewModel
         self.setToolTip(viewModel.name)
+        self.size = 10
+        self.setup()
+
+    def setup(self):
         self.setupGraphics()
         self.timer = QTimer()
         self.timer.timeout.connect(self.update)
-        self.timer.start(2000)
+        self.timer.start(1000)
 
     def brush(self, color=Qt.white, style=Qt.SolidPattern):
         return QBrush(color, style)
@@ -32,8 +36,8 @@ class MapViewItem(QGraphicsItem):
     def paint(self, painter, option, widget):
         pass
 
-    def boundingRect(self, size=4):
-        return QRectF(-size/2, -size/2, size, size)
+    def boundingRect(self):
+        return QRectF(-self.size/2, -self.size/2, self.size, self.size)
 
     def setupGraphics(self):
         raise NotImplementedError('must be overriden')
@@ -47,6 +51,9 @@ class MapViewItem(QGraphicsItem):
 
 
 class SatelliteViewItem(MapViewItem):
+    def __init__(self, viewModel):
+        super().__init__(viewModel)
+
     def setupGraphics(self):
         self.label = QGraphicsTextItem(self.viewModel.name, self)
         self.label.setDefaultTextColor(Qt.white)
@@ -57,8 +64,13 @@ class SatelliteViewItem(MapViewItem):
 
     def update(self):
         latlon = self.viewModel.latlon()
+        self.setToolTip(str(latlon.lat) + ' ' + str(latlon.lon))
         self.setLatlon(latlon)
         super().update()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # self.setSize(min(self.scene().width(), self.scene().height()) * 0.05)
 
 
 class GroundStationViewItem(MapViewItem):
@@ -71,17 +83,34 @@ class GroundStationViewItem(MapViewItem):
 class MapView(QGraphicsView):
     def __init__(self, background='images/world_map.jpg'):
         super().__init__(QGraphicsScene())
-        if self.isWindow():
-            self.setWindowTitle('map view')
-        self.setBackground(background)
+        self.background = QGraphicsPixmapItem(QPixmap(background))
+        self.addItem(self.background)
+        self.satellites = []
+        self.groundStations = []
+
+    def sizeHint(self):
+        return QSize(800, 400)
+
+    def width(self):
+        return self.scene().width()
+
+    def height(self):
+        return self.scene().height()
+
+    def addSatellite(self, viewModel):
+        satellite = SatelliteViewItem(viewModel)
+        self.addItem(satellite)
+        self.satellites.append(satellite)
+
+    def addGroundStation(self, viewModel):
+        groundStation = GroundStationViewItem(viewModel)
+        self.addItem(groundStation)
+        self.groundStations.append(groundStation)
 
     def addItem(self, item):
         self.scene().addItem(item)
 
-    def setBackground(self, filename):
-        pixmap = QPixmap(filename).scaled(800, 400)
-        self.addItem(QGraphicsPixmapItem(pixmap))
-
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.fitInView(self.sceneRect())
+        # self.background.pixmap().scaled(self.width(), self.height())
