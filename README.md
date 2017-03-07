@@ -11,8 +11,7 @@ and [python-sgp4][3] to predict satellite positions.
 
 to run:
 
-        cd tracker/
-        python tracker.py
+        python -m tracker
 
 ## installation
 
@@ -21,8 +20,7 @@ to run:
 
 ## TODO
 
-- change from spherical earth to a more accurate representation
-- optimizations
+- replace pygame with qt for gui
 - 3d view
 - keep looking up
 	
