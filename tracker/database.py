@@ -1,91 +1,80 @@
-import os
-import re
-import urllib
-from tle import TLE
+import atexit
+import sqlite3
+import requests
 
-groups = [
-    'amateur',
-    'galileo',
-    'globalstar',
-    'noaa',
-    'stations',
-    'science',
-    'weather'
-]
+conn = sqlite3.connect('tles.db')
+atexit.register(conn.close)
 
-URL_FORMAT = 'http://celestrak.com/NORAD/elements/{}.txt'
-DATA_PATH = '../data'
-LOCAL_FORMAT = os.path.join(DATA_PATH, '{}.txt')
+SOURCES = (
+        'http://www.amsat.org/amsat/ftp/keps/current/nasabare.txt',
+        'https://celestrak.com/NORAD/elements/stations.txt',
+        'https://celestrak.com/NORAD/elements/amateur.txt',
+        'https://celestrak.com/NORAD/elements/cubesat.txt',
+)
 
+def init_db():
+    '''initialize database table'''
+    conn.cursor().execute('''create table if not exists tles (
+            id integer primary key unique, tle text)''')
+    conn.commit()
 
-def download_file(group):
-    if not os.path.exists(DATA_PATH):
-        os.mkdir(DATA_PATH)
-    remote = URL_FORMAT.format(group)
-    local = LOCAL_FORMAT.format(group)
-    print('fetching', remote, '=>', local)
-    urllib.urlretrieve(remote, local)
+def insert(lines):
+    '''insert lines into database'''
+    rows = make_rows(lines)
+    c = conn.cursor()
+    c.executemany('insert or replace into tles values (?,?)', rows)
+    conn.commit()
 
+def norad_id(tle):
+    '''get norad id from tle'''
+    return int(tle.split('\n')[1][2:7])
 
-def update_all():
-    for group in groups:
-        download_file(group)
-
-
-def read_file(group):
-    with open(LOCAL_FORMAT.format(group)) as f:
-        content = f.read()
-    return content
-
-
-def load_data(group):
-    content = read_file(group)
-    lines = content.split('\n')
-
-    data = []
+def make_rows(lines):
+    '''turn tle file into database rows'''
+    rows = []
     for i in range(0, len(lines), 3):
-        if lines[i]:
-            tle_lines = '\n'.join(lines[i:i+3])
-            data.append(TLE(tle_lines))
+        if i+3 > len(lines):
+            break
+        tle = '\n'.join(lines[i:i+3])
+        id = norad_id(tle)
+        rows.append((id, tle))
+    return rows
 
-    return data
+def read_tles(filename):
+    '''read lines from file containing tles'''
+    with open(filename, 'r') as f:
+        lines = f.read().splitlines()
+    return lines
 
+def get(url):
+    '''get content from url'''
+    r = requests.get(url)
+    if r.status_code == 200:
+        return r.text
+    else:
+        print(url, r.status_code)
 
-def load_all():
-    data = []
-    for group in groups:
-        data.extend(load_data(group))
-    return data
+def fetch_tles(url):
+    '''fetch lines from website lines'''
+    data = get(url)
+    lines = data.splitlines()
+    return lines
 
+def update_from_network():
+    init_db()
+    for source in SOURCES:
+        rows = fetch_tles(source)
+        insert(rows)
 
-class TLEDatabase:
-    def __init__(self, update=True):
-        if update:
-            update_all()
-        self.data = load_all()
-
-    def find_by_name(self, name):
-        for d in self.data:
-            if re.search(name, d.sat_name, re.IGNORECASE):
-                return d
-
-        print('could not find satellite with name %s' % name)
-        return None
-
-    def find_all_by_name(self, name):
-        rv = []
-        for d in self.data:
-            if re.search(name, d.sat_name, re.IGNORECASE):
-                rv.append(d)
-
-        if not rv:
-            print('could not find any satellites with name %s' % name)
-        return rv
-
+def find_by_id(id):
+    '''return tle of row matcing norad id'''
+    c = conn.cursor()
+    c.execute('select * from tles where id=(?)', (id,))
+    res = c.fetchone()
+    if res:
+        id, tle = res
+        return tle
 
 if __name__ == '__main__':
-    # update_all()
-    db = TLEDatabase()
-    data = db.find_by_name('iss')
-    if data:
-        print(data.sat_name)
+    update_from_network()
+    print(find_by_id(25544))
