@@ -1,4 +1,5 @@
 import re
+import ephem
 from datetime import datetime, timedelta
 
 def valid_grid(grid):
@@ -45,6 +46,9 @@ def latlon_to_grid(lat, lon, precision=2):
 
 def ephem_time_to_datetime(et):
     return datetime(*map(int, et.tuple()))
+
+def datetime_to_ephem_time(dt):
+    return ephem.Date((dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second))
 
 def timestamp(et, fmt='%Y-%m-%d %H:%M:%S'):
     return ephem_time_to_datetime(et).strftime(fmt)
