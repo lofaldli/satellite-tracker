@@ -31,7 +31,8 @@ def live_tracking(obs, sats, interactive=True):
             obs.date = ephem.now()
             for sat in sats:
                 sat.compute(obs)
-                lines.append(str(sat))
+                lines.append('%s %6.2f %6.2f %6.2f %6.2f' % (sat.name.ljust(24), 
+                    sat.azimuth, sat.elevation, sat.latitude, sat.longitude))
 
             if interactive:
                 ui.update(lines)
