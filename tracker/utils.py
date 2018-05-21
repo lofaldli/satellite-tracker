@@ -2,9 +2,11 @@ import re
 import ephem
 from datetime import datetime, timedelta
 
+
 def valid_grid(grid):
     mo = re.match(r'^[A-R]{2}([0-9]{2}([a-x]{2})?)?$', grid, re.IGNORECASE)
     return mo is not None
+
 
 def grid_to_latlon(grid):
     if not valid_grid(grid):
@@ -27,6 +29,7 @@ def grid_to_latlon(grid):
 
     return lat, lon
 
+
 def latlon_to_grid(lat, lon, precision=2):
     grid = ''
 
@@ -44,23 +47,19 @@ def latlon_to_grid(lat, lon, precision=2):
     grid += chr(int(lat % 1 * 24) + ord('a'))
     return grid
 
+
 def ephem_time_to_datetime(et):
-    return datetime(*map(int, et.tuple()))
+    fmt = '%Y/%m/%d %H:%M:%S'
+    return datetime.strptime(str(et), fmt)
+
 
 def datetime_to_ephem_time(dt):
     return ephem.Date((dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second))
 
+
 def timestamp(et, fmt='%Y-%m-%d %H:%M:%S'):
     return ephem_time_to_datetime(et).strftime(fmt)
 
+
 def delta_t(t0, t1):
     return ephem_time_to_datetime(t1) - ephem_time_to_datetime(t0)
-
-
-if __name__ == '__main__':
-    #print(grid_to_latlon('AA00aa'))
-    #print(grid_to_latlon('JN49hu'))
-
-    print(latlon_to_grid(49.85, 8.62, 0))
-    print(latlon_to_grid(49.85, 8.62, 1))
-    print(latlon_to_grid(49.85, 8.62, 2))
