@@ -2,7 +2,7 @@ import math
 import ephem
 from datetime import datetime
 
-import utils
+from tracker import utils
 
 class Satellite(object):
     def __init__(self, tle):

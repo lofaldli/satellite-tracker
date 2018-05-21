@@ -1,8 +1,8 @@
 import time
 import ephem
-from ui import UI
-from database import find_by_id
-from models import Satellite, Observer, Pass
+from tracker.ui import UI
+from tracker.database import find_by_id
+from tracker.models import Satellite, Observer, Pass
 
 
 def list_passes(obs, sat, n=10):
